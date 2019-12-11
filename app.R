@@ -138,9 +138,13 @@ server <- function(input, output, session) {
                 data$table[,i+2] <- str_detect(data$table[,2] ,memory[i])
             }
             data$table[,input$slider1+3] <- F
+            progress <- shiny::Progress$new()
+            on.exit(progress$close())
+            progress$set(message = "tri database", value = 0)
             for (i in 1:input$slider1) {
                 for (j in 1:nrow(data$table)) {
-                    if (data$table[j,(i+2)]){data$table[j,(input$slider1+3)] <- T}   
+                    if (data$table[j,(i+2)]){data$table[j,(input$slider1+3)] <- T}
+                    progress$inc(1/(input$slider1*nrow(data$table)), detail = paste("Doing part", i))
                 }
             }
             if(input$checkbox){
