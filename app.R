@@ -144,7 +144,7 @@ server <- function(input, output, session) {
             for (i in 1:input$slider1) {
                 for (j in 1:nrow(data$table)) {
                     if (data$table[j,(i+2)]){data$table[j,(input$slider1+3)] <- T}
-                    progress$inc(1/(input$slider1*nrow(data$table)), detail = paste("Doing part", i))
+                    progress$inc(1/(input$slider1*nrow(data$table)), detail = paste("Doing step", i,"part",j))
                 }
             }
             if(input$checkbox){
