@@ -10,6 +10,7 @@
 library(shiny)
 library("shinyWidgets")
 library(stringr)
+options(shiny.maxRequestSize=1000*1024^2)
 
 
 # Define UI for data upload app ----
@@ -64,17 +65,47 @@ ui <- fluidPage(
             
             # Output: Data file ----
             # tableOutput("contents"),
-            
-            sliderInput("slider1", label = h3("Nombre de termes a enlever"), min = 0, 
-                        max = 5, value = 1),
-            textInput("text1", label = h3("mot a enlever 1"), value = "NULL"),
-            textInput("text2", label = h3("mot a enlever 2"), value = "NULL"),
-            textInput("text3", label = h3("mot a enlever 3"), value = "NULL"),
-            checkboxInput("checkbox", label = "Cocher pour enlever les articles sans abstracts", value = T),
-            actionButton(inputId = "sort", label = "tri"),
-            verbatimTextOutput("test"),
-            verbatimTextOutput("avant_tri"),
-            verbatimTextOutput("tri")
+            fluidRow(
+                
+                sliderInput("slider1", label = h3("Nombre de termes a enlever"), min = 0, 
+                            max = 6, value = 1),
+                
+                
+            ),
+            fluidRow(
+                column(4,
+                       conditionalPanel(
+                           condition = "input.slider1 > 0",
+                           textInput("text1", label = h3("mot a enlever 1"), value = "NULL")),
+                       conditionalPanel(
+                           condition = "input.slider1 > 3",
+                           textInput("text4", label = h3("mot a enlever 4"), value = "NULL"))),
+                
+                column(4,
+                       conditionalPanel(
+                           condition = "input.slider1 > 1",
+                           textInput("text2", label = h3("mot a enlever 2"), value = "NULL")),
+                       conditionalPanel(
+                           condition = "input.slider1 > 4",
+                           textInput("text5", label = h3("mot a enlever 5"), value = "NULL"))),
+                column(4,
+                       conditionalPanel(
+                           condition = "input.slider1 > 2",
+                           textInput("text3", label = h3("mot a enlever 3"), value = "NULL")),
+                       conditionalPanel(
+                           condition = "input.slider1 > 5",
+                           textInput("text6", label = h3("mot a enlever 6"), value = "NULL")))),
+            fluidRow(
+                checkboxInput("checkbox", label = "Cocher pour enlever les articles sans abstracts", value = T),
+                actionButton(inputId = "sort", label = "tri"),
+                h3("nombre d\'articles avant tri"),
+                verbatimTextOutput("avant_tri"),
+                h3("nombre d\'articles apres tri"),
+                verbatimTextOutput("tri"),
+                downloadButton("downloadData", "Download") 
+                
+                
+            )
         )
         
     )
@@ -82,39 +113,7 @@ ui <- fluidPage(
 
 # Define server logic to read selected file ----
 server <- function(input, output, session) {
-    # df <- 
-    #     output$contents <- renderTable({
-    #         
-    #         # input$file1 will be NULL initially. After the user selects
-    #         # and uploads a file, head of that data file by default,
-    #         # or all rows if selected, will be shown.
-    #         
-    #         req(input$file1)
-    #         
-    #         # when reading semicolon separated files,
-    #         # having a comma separator causes `read.csv` to error
-    #         tryCatch(
-    #             {
-    #                 df <- read.csv(input$file1$datapath,
-    #                                header = input$header,
-    #                                sep = input$sep,
-    #                                quote = input$quote)
-    #             },
-    #             error = function(e) {
-    #                 # return a safeError if a parsing error occurs
-    #                 stop(safeError(e))
-    #             }
-    #         )
-    #         
-    #         if(input$disp == "head") {
-    #             return(head(df))
-    #         }
-    #         else {
-    #             return(df)
-    #         }
-    #         
-    #     })
-    # 
+    
     data = reactiveValues()
     
     observeEvent(input$sauve, {
@@ -134,7 +133,7 @@ server <- function(input, output, session) {
     data2 <- reactiveValues()
     observeEvent(input$sort, {
         if (input$slider1>0) {
-            memory <- c(input$text1, input$text2, input$text3)
+            memory <- c(input$text1, input$text2, input$text3, input$text4, input$text5,input$text6)
             for (i in 1:input$slider1) {
                 data$table[,i+2] <- str_detect(data$table[,2] ,memory[i])
             }
@@ -149,30 +148,50 @@ server <- function(input, output, session) {
                     if (str_detect(str_sub(data$table[j,2],str_length(data$table[j,2])-2,str_length(data$table[j,2])),"na")){data$table[j,(input$slider1+3)] <- T}  
                 }
             }
-            data2$tri <- subset(data$table, data$table[,(input$slider1+3)] == F)
- #           names(data2$tri<- c("uid","abstract",memory,"to remove"))
-            data2$tri2 <- data2$tri[,1:2]
+           
         }
-        
+        if (input$slider1==0) {
+            data$table[,input$slider1+3] <- F
+            if(input$checkbox){
+                for (j in 1:nrow(data$table)) {
+                    if (str_detect(str_sub(data$table[j,2],str_length(data$table[j,2])-2,str_length(data$table[j,2])),"na")){data$table[j,3] <- T}  
+                }
+            }
+        }
+        data2$tri <- subset(data$table, data$table[,(input$slider1+3)] == F)
+        #           names(data2$tri<- c("uid","abstract",memory,"to remove"))
+        data2$tri2 <- data2$tri[,1:2]
+        sendSweetAlert(
+            session = session,
+            title = "Done !",
+            text = "La base a bien ete triee !",
+            type = "success"
+        )  
         
     })
+    date_jour <- str_sub(date(),start = 9,end = 10)
+    date_mois <- str_sub(date(),start = 5,end = 7)
+    date_annee <- str_sub(date(),start = 21,end = 24)
+    date_heure <- str_c(str_sub(date(),start = 12,end = 13),"h", str_sub(date(),start = 15,end = 16))
     
+    name_id <- str_c("shiny.step2_",date_jour,"_",date_mois, "_" , date_annee,"_" ,date_heure,".csv")
+    value <- reactiveValues(download = 0)
     observeEvent(input$sort, {
         output$test <-renderPrint({
             head(data2$tri2)})
         output$avant_tri <-renderPrint({nrow(data$table)})
         output$tri <-renderPrint({nrow(data2$tri)})
+        value$download <- 1
+        
     })
-    
-    # data_total$mastectomy <- str_detect(data_total$abstract,"mastectom")
-    # data_total$chemotherap <- str_detect(data_total$abstract,"chemotherap")
-    # data_total$surgery <- str_detect(data_total$abstract,"surger")
-    # data_total$mortality <- str_detect(data_total$abstract,"mortalit")
-    # data_total$surgical <- str_detect(data_total$abstract,"surgic")
-    # data_total$lesion <- str_detect(data_total$abstract,"lesion")
-    # output$test <-renderPrint({
-    #     
-    #     data$table[1:5,1:input$slider]})
+    output$downloadData <- downloadHandler(
+        filename = function() {
+            name_id
+        },
+        content = function(file) {
+            write.csv(data2$tri2, file, col.names = F, row.names = FALSE)
+        }
+    )
     
 }
 # Create Shiny app ----
