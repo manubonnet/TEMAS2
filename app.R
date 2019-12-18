@@ -1,4 +1,4 @@
-#
+##################################STEP 2 ############################???
 # This is a Shiny web application. You can run the application by clicking
 # the 'Run App' button above.
 #
@@ -56,7 +56,8 @@ ui <- fluidPage(
             tags$hr(),
             
             # Input: Select number of rows to display ----
-            actionButton(inputId = "sauve", label = "sauvegarde")
+            actionButton(inputId = "sauve", label = "sauvegarde"),
+            uiOutput("tab")
             
         ),
         
@@ -196,7 +197,10 @@ server <- function(input, output, session) {
             write.csv(data2$tri2, file, col.names = F, row.names = FALSE)
         }
     )
-    
+    url <- a("step_OR", href=" https://step3.temas-bonnet.site/") 
+    output$tab <- renderUI({ 
+        tagList("Link to step_OR:", url) 
+    }) 
 }
 # Create Shiny app ----
 shinyApp(ui, server)
