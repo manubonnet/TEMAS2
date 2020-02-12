@@ -166,6 +166,10 @@ server <- function(input, output, session) {
         data2$tri <- subset(data$table, data$table[,(input$slider1+3)] == F)
         #           names(data2$tri<- c("uid","abstract",memory,"to remove"))
         data2$tri2 <- data2$tri[,1:2]
+        n_entr <- nrow(data2$tri2)
+        data2$tri3 <- paste(data2$tri2[,1],data2$tri2[,2],sep="")
+        data2$tri4 <- paste(rep("**** *abstract_",n_entr),1:n_entr,"\n",sep = "")
+        data2$tri5 <- paste(data2$tri4,data2$tri3,collapse = "\n",sep = "")
         sendSweetAlert(
             session = session,
             title = "Done !",
@@ -179,7 +183,7 @@ server <- function(input, output, session) {
     date_annee <- str_sub(date(),start = 21,end = 24)
     date_heure <- str_c(str_sub(date(),start = 12,end = 13),"h", str_sub(date(),start = 15,end = 16))
     
-    name_id <- str_c("shiny.step2_",date_jour,"_",date_mois, "_" , date_annee,"_" ,date_heure,".csv")
+    name_id <- str_c("shiny.step2_",date_jour,"_",date_mois, "_" , date_annee,"_" ,date_heure,".txt")
     value <- reactiveValues(download = 0)
     observeEvent(input$sort, {
         output$test <-renderPrint({
@@ -194,7 +198,7 @@ server <- function(input, output, session) {
             name_id
         },
         content = function(file) {
-            write.csv(data2$tri2, file, col.names = F, row.names = FALSE)
+            write.table(data2$tri5,file,row.names = F, col.names = F,quote = F)
         }
     )
     url <- a("step_OR", href=" https://step3.temas-bonnet.site/") 
