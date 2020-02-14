@@ -15,7 +15,9 @@ options(shiny.maxRequestSize=1000*1024^2)
 
 # Define UI for data upload app ----
 ui <- fluidPage(
-    
+    tags$head(
+        tags$style(HTML("hr {border-top: 1px solid #000000;}"))
+    ),
     # App title ----
     titlePanel("First sort"),
     
@@ -32,8 +34,6 @@ ui <- fluidPage(
                                  "text/comma-separated-values,text/plain",
                                  ".csv")),
             
-            # Horizontal line ----
-            tags$hr(),
             
             # Input: Checkbox if file has header ----
             checkboxInput("header", "Header", TRUE),
@@ -52,11 +52,9 @@ ui <- fluidPage(
                                      "Single Quote" = "'"),
                          selected = '"'),
             
-            # Horizontal line ----
-            tags$hr(),
             
             # Input: Select number of rows to display ----
-            actionButton(inputId = "sauve", label = "sauvegarde"),
+            actionButton(inputId = "sauve", label = "Upload database"),
             uiOutput("tab")
             
         ),
@@ -67,44 +65,66 @@ ui <- fluidPage(
             # Output: Data file ----
             # tableOutput("contents"),
             fluidRow(
+                h3("Step 1: Select the number of terms to remove"),
+                sliderInput("slider1" , label="", min = 0, 
+                            max = 6, value = 0),
                 
-                sliderInput("slider1", label = h3("Nombre de termes a enlever"), min = 0, 
-                            max = 6, value = 1),
                 
-                
+            ),
+            fluidRow(
+                conditionalPanel( "input.slider1 > 0",
+                                  hr(),
+                                  h3("Step 2: Enter the term(s) to remove")
+                ),
             ),
             fluidRow(
                 column(4,
                        conditionalPanel(
                            condition = "input.slider1 > 0",
-                           textInput("text1", label = h3("mot a enlever 1"), value = "NULL")),
+                           textInput("text1", label = h5("term to remove 1"), value = "NULL")),
                        conditionalPanel(
                            condition = "input.slider1 > 3",
-                           textInput("text4", label = h3("mot a enlever 4"), value = "NULL"))),
-                
+                           textInput("text4", label = h5("term to remove 4"), value = "NULL"))),
                 column(4,
                        conditionalPanel(
                            condition = "input.slider1 > 1",
-                           textInput("text2", label = h3("mot a enlever 2"), value = "NULL")),
+                           textInput("text2", label = h5("term to remove 2"), value = "NULL")),
                        conditionalPanel(
                            condition = "input.slider1 > 4",
-                           textInput("text5", label = h3("mot a enlever 5"), value = "NULL"))),
+                           textInput("text5", label = h5("term to remove 5"), value = "NULL"))),
                 column(4,
                        conditionalPanel(
                            condition = "input.slider1 > 2",
-                           textInput("text3", label = h3("mot a enlever 3"), value = "NULL")),
+                           textInput("text3", label = h5("term to remove 3"), value = "NULL")),
                        conditionalPanel(
                            condition = "input.slider1 > 5",
-                           textInput("text6", label = h3("mot a enlever 6"), value = "NULL")))),
+                           textInput("text6", label = h5("term to remove 6"), value = "NULL")))),
             fluidRow(
-                checkboxInput("checkbox", label = "Cocher pour enlever les articles sans abstracts", value = T),
-                actionButton(inputId = "sort", label = "tri"),
-                h3("nombre d\'articles avant tri"),
-                verbatimTextOutput("avant_tri"),
-                h3("nombre d\'articles apres tri"),
-                verbatimTextOutput("tri"),
-                downloadButton("downloadData", "Download") 
-                
+                hr(),
+                conditionalPanel( "input.slider1 == 0",
+                                  h3("Step 2: Management of articles without abstract")
+                ),
+                conditionalPanel( "input.slider1 > 0",
+                                  h3("Step 3: Management of articles without abstract")
+                ),
+                checkboxInput("checkbox", label = "Check the box to remove articles without abstracts (strongly recommended)", value = T),
+                hr(),
+                conditionalPanel( "input.slider1 == 0",
+                                  h3("Step 3: Sort Database")
+                ),
+                conditionalPanel( "input.slider1 > 0",
+                                  h3("Step 4: Sort Database")
+                ),
+                actionButton(inputId = "sort", label = "Sort database"),
+                conditionalPanel( "input.sort",
+                                  hr(),
+                                  h3("Sort result :"),
+                                  h4("Number of articles before sorting"),
+                                  verbatimTextOutput("avant_tri"),
+                                  h4("Number of articles before sorting"),
+                                  verbatimTextOutput("tri"),
+                                  downloadButton("downloadData", "Download sorted database") 
+                )
                 
             )
         )
@@ -118,6 +138,14 @@ server <- function(input, output, session) {
     data = reactiveValues()
     
     observeEvent(input$sauve, {
+        sendSweetAlert(
+            session = session,
+            btn_labels = NA,
+            title = "Saving database",
+            text = "Please wait until \"Done !\" appears on your screen.",
+            closeOnClickOutside = F,
+            type = "warning"
+        )
         data$table = read.csv(input$file1$datapath,
                               header = input$header,
                               sep = input$sep,
@@ -125,7 +153,7 @@ server <- function(input, output, session) {
         sendSweetAlert(
             session = session,
             title = "Done !",
-            text = "Le fichier a bien ete enregistre !",
+            text = "Database saved !",
             type = "success"
         )  
         
@@ -133,6 +161,14 @@ server <- function(input, output, session) {
     output$test <- renderPrint({"attente tri"})
     data2 <- reactiveValues()
     observeEvent(input$sort, {
+        sendSweetAlert(
+            session = session,
+            btn_labels = NA,
+            title = "Sorting database",
+            text = "Please wait until \"Done !\" appears on your screen.",
+            closeOnClickOutside = F,
+            type = "warning"
+        )
         if (input$slider1>0) {
             memory <- c(input$text1, input$text2, input$text3, input$text4, input$text5,input$text6)
             for (i in 1:input$slider1) {
@@ -153,7 +189,7 @@ server <- function(input, output, session) {
                     if (str_detect(str_sub(data$table[j,2],str_length(data$table[j,2])-2,str_length(data$table[j,2])),"na")){data$table[j,(input$slider1+3)] <- T}  
                 }
             }
-           
+            
         }
         if (input$slider1==0) {
             data$table[,input$slider1+3] <- F
@@ -166,14 +202,30 @@ server <- function(input, output, session) {
         data2$tri <- subset(data$table, data$table[,(input$slider1+3)] == F)
         #           names(data2$tri<- c("uid","abstract",memory,"to remove"))
         data2$tri2 <- data2$tri[,1:2]
+        # data2$tri2[,2] <- gsub("['`^~\"]", " ", data2$tri2[,2])
+        # data2$tri2[,2] <- iconv(data2$tri2[,2], to="ASCII//TRANSLIT")
+        # data2$tri2[,2] <- gsub("['`^~,-><?!|\"]", "", data2$tri2[,2])
+        # # data2$tri2[,2] <- gsub("\\d+\\s+", " ", data2$tri2[,2])
+        # # data2$tri2[,2] <- gsub("\\s+\\d+", " ", data2$tri2[,2])
+        # data2$tri2[,2] <- gsub("\\s+", " ", gsub("^\\s+|\\s+$", "", data2$tri2[,2]))
+        data2$tri2[,2] <- iconv(data2$tri2[,2], to="ASCII//TRANSLIT//IGNORE")
+        data2$tri2[,2] <- gsub("['`^~,-><?$!|\"]", "", data2$tri2[,2])
+        data2$tri2[,2] <- gsub("[azertyuiopmlkjhgfdsqwxcvbn]+[AZERTYUIOPMLKJHGFDSQWXCVBN]+[azertyuiopmlkjhgfdsqwxcvbn]+", "", data2$tri2[,2])
+        data2$tri2[,2] <- gsub("[AZERTYUIOPMLKJHGFDSQWXCVBN]+", "", data2$tri2[,2])
+        data2$tri2[,2] <- gsub("[azertyuiopmlkjhgfdsqwxcvbn]*[a]{2,}[azertyuiopmlkjhgfdsqwxcvbn]*", "", data2$tri2[,2])
+        data2$tri2[,2] <- gsub("\\s+", " ", gsub("^\\s+|\\s+$", "", data2$tri2[,2]))
+        
+        
         n_entr <- nrow(data2$tri2)
         data2$tri3 <- paste(data2$tri2[,1],data2$tri2[,2],sep="")
         data2$tri4 <- paste(rep("**** *abstract_",n_entr),1:n_entr,"\n",sep = "")
         data2$tri5 <- paste(data2$tri4,data2$tri3,collapse = "\n",sep = "")
+        
+        
         sendSweetAlert(
             session = session,
             title = "Done !",
-            text = "La base a bien ete triee !",
+            text = "The database has been correctly sorted !",
             type = "success"
         )  
         
@@ -201,9 +253,9 @@ server <- function(input, output, session) {
             write.table(data2$tri5,file,row.names = F, col.names = F,quote = F)
         }
     )
-    url <- a("step_OR", href=" https://step3.temas-bonnet.site/") 
+    url <- a("step_Classif", href=" https://step3.temas-bonnet.site/TEMASC") 
     output$tab <- renderUI({ 
-        tagList("Link to step_OR:", url) 
+        tagList("Link to step_classif:", url) 
     }) 
 }
 # Create Shiny app ----
