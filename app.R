@@ -217,7 +217,7 @@ server <- function(input, output, session) {
         
         
         n_entr <- nrow(data2$tri2)
-        data2$tri3 <- paste(data2$tri2[,1],data2$tri2[,2],sep="")
+        data2$tri3 <- paste(data2$tri2[,1],data2$tri2[,2],sep="---")
         data2$tri4 <- paste(rep("**** *abstract_",n_entr),1:n_entr,"\n",sep = "")
         data2$tri5 <- paste(data2$tri4,data2$tri3,collapse = "\n",sep = "")
         
