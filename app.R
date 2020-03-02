@@ -38,20 +38,24 @@ ui <- fluidPage(
             # Input: Checkbox if file has header ----
             checkboxInput("header", "Header", TRUE),
             
-            # Input: Select separator ----
-            radioButtons("sep", "Separator",
-                         choices = c(Comma = ",",
-                                     Semicolon = ";",
-                                     Tab = "\t"),
-                         selected = ","),
-            
-            # Input: Select quotes ----
-            radioButtons("quote", "Quote",
-                         choices = c(None = "",
-                                     "Double Quote" = '"',
-                                     "Single Quote" = "'"),
-                         selected = '"'),
-            
+            fluidRow(
+                column(6,
+                       # Input: Select separator ----
+                       radioButtons("sep", "Separator",
+                                    choices = c(Comma = ",",
+                                                Semicolon = ";",
+                                                Tab = "\t"),
+                                    selected = ",")     
+                ),
+                column(6,
+                       # Input: Select quotes ----
+                       radioButtons("quote", "Quote",
+                                    choices = c(None = "",
+                                                "Double Quote" = '"',
+                                                "Single Quote" = "'"),
+                                    selected = '"')
+                )
+            ),
             
             # Input: Select number of rows to display ----
             actionButton(inputId = "sauve", label = "Upload database"),
