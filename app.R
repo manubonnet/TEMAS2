@@ -11,7 +11,7 @@ library(shiny)
 library("shinyWidgets")
 library(stringr)
 options(shiny.maxRequestSize=1000*1024^2)
-options(encoding = "UTF-8")
+
 
 
 # Define UI for data upload app ----
