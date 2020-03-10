@@ -124,10 +124,8 @@ ui <- fluidPage(
                 conditionalPanel( "input.sort",
                                   hr(),
                                   h3("Sort result :"),
-                                  h4("Number of articles before sorting"),
-                                  verbatimTextOutput("avant_tri"),
-                                  h4("Number of articles before sorting"),
-                                  verbatimTextOutput("tri"),
+                                  h4(textOutput("avant_tri")),
+                                  h4(textOutput("tri")),
                                   downloadButton("downloadData", "Download sorted database") 
                 )
                 
@@ -180,33 +178,53 @@ server <- function(input, output, session) {
                 data$table[,i+2] <- str_detect(data$table[,2] ,memory[i])
             }
             data$table[,input$slider1+3] <- F
-            progress <- shiny::Progress$new()
-            on.exit(progress$close())
-            progress$set(message = "tri database", value = 0)
-            for (i in 1:input$slider1) {
-                for (j in 1:nrow(data$table)) {
+            for (j in 1:nrow(data$table)) {
+                i <- 1
+                while(i <= input$slider1 & !data$table[j,(input$slider1+3)]) {
                     if (data$table[j,(i+2)]){data$table[j,(input$slider1+3)] <- T}
-                    progress$inc(1/(input$slider1*nrow(data$table)), detail = paste("Doing step", i,"part",j))
+                    i <- i+1
                 }
             }
+            a <- 0
             if(input$checkbox){
+                
                 for (j in 1:nrow(data$table)) {
-                    if (str_detect(str_sub(data$table[j,2],str_length(data$table[j,2])-2,str_length(data$table[j,2])),"na")){data$table[j,(input$slider1+3)] <- T}  
+                    #               if (!data$table[j,(input$slider1+3)]) {
+                    if (str_detect(str_sub(data$table[j,2],str_length(data$table[j,2])-2,str_length(data$table[j,2])),"na")){
+                        data$table[j,(input$slider1+3)] <- T
+                        a <- a+1
+                        
+                    }  
+                    #                }
+                    
                 }
+                a_mem <- reactiveValues()
+                a_mem$a <- a
+                print(a)
             }
             
         }
         if (input$slider1==0) {
+            a <- 0
             data$table[,input$slider1+3] <- F
             if(input$checkbox){
+                
                 for (j in 1:nrow(data$table)) {
-                    if (str_detect(str_sub(data$table[j,2],str_length(data$table[j,2])-2,str_length(data$table[j,2])),"na")){data$table[j,3] <- T}  
+                    if (str_detect(str_sub(data$table[j,2],str_length(data$table[j,2])-2,str_length(data$table[j,2])),"na")){
+                        data$table[j,3] <- T
+                        a <- a+1
+                    }  
                 }
+                a_mem <- reactiveValues()
+                a_mem$a <- a
+                print(a_mem$a)
+                print(a)
             }
         }
         data2$tri <- subset(data$table, data$table[,(input$slider1+3)] == F)
         #           names(data2$tri<- c("uid","abstract",memory,"to remove"))
         data2$tri2 <- data2$tri[,1:2]
+        print(a_mem$a)
         # data2$tri2[,2] <- gsub("['`^~\"]", " ", data2$tri2[,2])
         # data2$tri2[,2] <- iconv(data2$tri2[,2], to="ASCII//TRANSLIT")
         # data2$tri2[,2] <- gsub("['`^~,-><?!|\"]", "", data2$tri2[,2])
@@ -234,6 +252,19 @@ server <- function(input, output, session) {
             type = "success"
         )  
         
+        
+       
+        value <- reactiveValues(download = 0)
+        
+        print(a_mem$a)
+        output$test <-renderPrint({
+            head(data2$tri2)})
+        output$avant_tri <-renderText({paste(nrow(data$table), "articles before sorting,")})
+        
+        output$tri <-renderText({paste(nrow(data2$tri),"articles after sorting \n (",a_mem$a,
+                                       "articles without abstracts, and",(as.numeric(nrow(data$table)-nrow(data2$tri))-as.numeric(a_mem$a)),"articles containing off-topic words removed)")})
+        value$download <- 1
+        
     })
     date_jour <- str_sub(date(),start = 9,end = 10)
     date_mois <- str_sub(date(),start = 5,end = 7)
@@ -241,15 +272,6 @@ server <- function(input, output, session) {
     date_heure <- str_c(str_sub(date(),start = 12,end = 13),"h", str_sub(date(),start = 15,end = 16))
     
     name_id <- str_c("shiny.step2_",date_jour,"_",date_mois, "_" , date_annee,"_" ,date_heure,".txt")
-    value <- reactiveValues(download = 0)
-    observeEvent(input$sort, {
-        output$test <-renderPrint({
-            head(data2$tri2)})
-        output$avant_tri <-renderPrint({nrow(data$table)})
-        output$tri <-renderPrint({nrow(data2$tri)})
-        value$download <- 1
-        
-    })
     output$downloadData <- downloadHandler(
         filename = function() {
             name_id
